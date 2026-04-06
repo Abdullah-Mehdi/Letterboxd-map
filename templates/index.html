@@ -7,7 +7,48 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>Letterboxd World Map</h1>
-    <p>Visualize which countries your watched films come from.</p>
+    <header>
+        <h1>Letterboxd World Map</h1>
+        <p>See which countries your watched films come from.</p>
+    </header>
+
+    <section id="input-section">
+        <div class="input-tabs">
+            <button class="tab active" data-tab="username-tab">By Username</button>
+            <button class="tab" data-tab="upload-tab">Upload CSV / ZIP</button>
+        </div>
+
+        <div id="username-tab" class="tab-content active">
+            <form id="username-form">
+                <input type="text" id="username-input" placeholder="Letterboxd username" autocomplete="off" required>
+                <button type="submit">Generate Map</button>
+            </form>
+        </div>
+
+        <div id="upload-tab" class="tab-content">
+            <form id="upload-form">
+                <label class="file-label" for="file-input">
+                    <span id="file-name">Choose watched.csv or export .zip</span>
+                    <input type="file" id="file-input" accept=".csv,.zip" required>
+                </label>
+                <button type="submit">Generate Map</button>
+            </form>
+        </div>
+    </section>
+
+    <section id="progress-section" class="hidden">
+        <div class="progress-bar-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <p id="progress-text">Starting...</p>
+    </section>
+
+    <section id="map-section" class="hidden">
+        <div id="map-container"></div>
+    </section>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 </body>
 </html>
