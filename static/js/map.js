@@ -81,6 +81,8 @@ document.getElementById("upload-form").addEventListener("submit", async e => {
 });
 
 // --------------- SSE progress ---------------
+let _filmsByCountry = {};
+
 function listenForProgress(jobId, totalFilms) {
     const source = new EventSource(`/api/progress/${jobId}`);
 
@@ -93,7 +95,8 @@ function listenForProgress(jobId, totalFilms) {
             progressText.textContent = `${msg.current} / ${msg.total} — ${msg.title}`;
         } else if (msg.type === "done") {
             source.close();
-            renderMap(msg.data);
+            _filmsByCountry = msg.films || {};
+            renderMap(msg.counts);
         } else if (msg.type === "error") {
             source.close();
             showError(msg.error);
@@ -109,6 +112,9 @@ function listenForProgress(jobId, totalFilms) {
 // --------------- Map rendering ---------------
 let projection, path, svg, countryPaths;
 const tooltip = document.getElementById("tooltip");
+const filmPanel = document.getElementById("film-panel");
+
+document.getElementById("panel-close").addEventListener("click", closeFilmPanel);
 
 async function renderMap(countryData) {
     progressSection.classList.add("hidden");
@@ -141,10 +147,10 @@ async function renderMap(countryData) {
     const world = await d3.json("/static/data/world-110m.json");
     const countries = topojson.feature(world, world.objects.countries);
 
-    // Build color scale
+    // Log scale with multi-hue palette for better differentiation
     const maxCount = Math.max(1, ...Object.values(countryData));
-    const colorScale = d3.scaleSequential(d3.interpolateGreens)
-        .domain([0, maxCount]);
+    const colorScale = d3.scaleSequentialLog(d3.interpolateYlOrRd)
+        .domain([1, Math.max(2, maxCount)]);
 
     // Lookup helper
     function getCount(d) {
@@ -173,9 +179,46 @@ async function renderMap(countryData) {
         .on("mouseleave", function () {
             d3.selectAll(".country").style("opacity", null);
             hideTooltip();
+        })
+        .on("click", function (event, d) {
+            const alpha3 = NUM_TO_ALPHA3[d.id];
+            const name = d.properties.name || "Unknown";
+            const count = getCount(d);
+            const films = alpha3 ? (_filmsByCountry[alpha3] || []) : [];
+            openFilmPanel(name, count, films);
         });
 
     drawLegend(svg, colorScale, maxCount, width, height);
+}
+
+// --------------- Film panel ---------------
+function openFilmPanel(name, count, films) {
+    document.getElementById("panel-country").textContent = name;
+    const plural = count === 1 ? "film" : "films";
+    document.getElementById("panel-count").textContent = count > 0 ? `${count} ${plural}` : "No films";
+    const list = document.getElementById("panel-list");
+    list.innerHTML = "";
+    if (films.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No films watched from this country.";
+        li.style.color = "#667";
+        list.appendChild(li);
+    } else {
+        films.forEach(title => {
+            const li = document.createElement("li");
+            li.textContent = title;
+            list.appendChild(li);
+        });
+    }
+    filmPanel.classList.remove("hidden");
+    requestAnimationFrame(() => filmPanel.classList.add("visible"));
+}
+
+function closeFilmPanel() {
+    filmPanel.classList.remove("visible");
+    filmPanel.addEventListener("transitionend", () => {
+        filmPanel.classList.add("hidden");
+    }, {once: true});
 }
 
 // --------------- Tooltip ---------------
@@ -221,29 +264,32 @@ function drawLegend(svg, colorScale, maxCount, svgWidth, svgHeight) {
         .attr("class", "legend")
         .attr("transform", `translate(${legendX}, ${legendY})`);
 
-    // Gradient definition
     const defs = svg.append("defs");
     const gradient = defs.append("linearGradient")
         .attr("id", "legend-gradient");
 
-    const steps = 10;
+    // Sample the log color scale across the gradient
+    const steps = 20;
+    const logMin = Math.log(1);
+    const logMax = Math.log(Math.max(2, maxCount));
     for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const val = Math.exp(logMin + t * (logMax - logMin));
         gradient.append("stop")
-            .attr("offset", `${(i / steps) * 100}%`)
-            .attr("stop-color", colorScale((i / steps) * maxCount));
+            .attr("offset", `${t * 100}%`)
+            .attr("stop-color", colorScale(val));
     }
 
-    // Gradient bar
     legend.append("rect")
         .attr("width", legendWidth)
         .attr("height", legendHeight)
         .attr("rx", 3)
         .style("fill", "url(#legend-gradient)");
 
-    // Tick labels
-    const tickValues = buildTickValues(maxCount);
-    const tickScale = d3.scaleLinear()
-        .domain([0, maxCount])
+    // Log-spaced tick labels
+    const tickValues = buildLogTickValues(maxCount);
+    const tickScale = d3.scaleLog()
+        .domain([1, Math.max(2, maxCount)])
         .range([0, legendWidth]);
 
     legend.selectAll(".legend-tick")
@@ -257,7 +303,6 @@ function drawLegend(svg, colorScale, maxCount, svgWidth, svgHeight) {
         .attr("font-size", "10px")
         .text(d => d);
 
-    // Title
     legend.append("text")
         .attr("x", 0)
         .attr("y", -6)
@@ -266,10 +311,17 @@ function drawLegend(svg, colorScale, maxCount, svgWidth, svgHeight) {
         .text("Films watched");
 }
 
-function buildTickValues(max) {
-    if (max <= 5) return d3.range(0, max + 1);
-    if (max <= 20) return d3.range(0, max + 1, Math.ceil(max / 5));
-    return [0, Math.round(max * 0.25), Math.round(max * 0.5), Math.round(max * 0.75), max];
+function buildLogTickValues(max) {
+    if (max <= 5) return d3.range(1, max + 1);
+    const ticks = [1];
+    let v = 1;
+    while (v * 10 <= max) { v *= 10; ticks.push(v); }
+    if (ticks[ticks.length - 1] !== max) ticks.push(max);
+    // Fill in mid-points for small ranges
+    if (ticks.length <= 2 && max > 10) {
+        ticks.splice(1, 0, Math.round(Math.sqrt(max)));
+    }
+    return ticks;
 }
 
 // --------------- Helpers ---------------

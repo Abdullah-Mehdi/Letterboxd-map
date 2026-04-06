@@ -69,8 +69,8 @@ def _alpha2_to_alpha3(code: str) -> str | None:
 def aggregate_countries(
     films: list[dict],
     progress_callback=None,
-) -> dict[str, int]:
-    """Build a {alpha3_country_code: film_count} dict from a film list.
+) -> dict:
+    """Build per-country counts and film lists from a film list.
 
     Args:
         films: list of dicts with keys 'title' and 'year' (from csv_parser).
@@ -78,10 +78,12 @@ def aggregate_countries(
                            after each film is processed.
 
     Returns:
-        Dict mapping ISO 3166-1 alpha-3 codes to the number of watched
-        films produced in that country.
+        Dict with two keys:
+          "counts" - {alpha3_code: int}
+          "films"  - {alpha3_code: ["Title (Year)", ...]}
     """
     counts: dict[str, int] = defaultdict(int)
+    film_lists: dict[str, list[str]] = defaultdict(list)
     total = len(films)
 
     for i, film in enumerate(films):
@@ -98,13 +100,19 @@ def aggregate_countries(
                 tmdb_id = search_movie(title, year)
             cache.put(title, year, tmdb_id, countries)
 
+        label = f"{title} ({year})" if year else title
+
         for c in countries:
             alpha2 = c.get("iso_3166_1", "")
             alpha3 = _alpha2_to_alpha3(alpha2)
             if alpha3:
                 counts[alpha3] += 1
+                film_lists[alpha3].append(label)
 
         if progress_callback:
             progress_callback(i + 1, total, title)
 
-    return dict(counts)
+    return {
+        "counts": dict(counts),
+        "films": dict(film_lists),
+    }
