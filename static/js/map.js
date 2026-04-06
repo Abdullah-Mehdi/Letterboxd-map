@@ -130,6 +130,7 @@ function listenForProgress(jobId, totalFilms) {
 
 // --------------- Map rendering ---------------
 let projection, path, svg, countryPaths;
+const tooltip = document.getElementById("tooltip");
 
 async function renderMap(countryData) {
     progressSection.classList.add("hidden");
@@ -150,6 +151,15 @@ async function renderMap(countryData) {
         .attr("viewBox", `0 0 ${width} ${height}`)
         .attr("preserveAspectRatio", "xMidYMid meet");
 
+    // Zoomable group
+    const g = svg.append("g");
+
+    const zoom = d3.zoom()
+        .scaleExtent([1, 8])
+        .on("zoom", e => g.attr("transform", e.transform));
+
+    svg.call(zoom);
+
     const world = await d3.json("/static/data/world-110m.json");
     const countries = topojson.feature(world, world.objects.countries);
 
@@ -158,23 +168,68 @@ async function renderMap(countryData) {
     const colorScale = d3.scaleSequential(d3.interpolateGreens)
         .domain([0, maxCount]);
 
-    // Draw countries
-    countryPaths = svg.selectAll(".country")
+    // Lookup helper
+    function getCount(d) {
+        const alpha3 = NUM_TO_ALPHA3[d.id];
+        return alpha3 ? (countryData[alpha3] || 0) : 0;
+    }
+
+    // Draw countries inside zoomable group
+    countryPaths = g.selectAll(".country")
         .data(countries.features)
         .join("path")
         .attr("d", path)
-        .attr("class", d => {
-            const alpha3 = NUM_TO_ALPHA3[d.id];
-            const count = alpha3 ? (countryData[alpha3] || 0) : 0;
-            return count > 0 ? "country" : "country no-data";
-        })
+        .attr("class", d => getCount(d) > 0 ? "country" : "country no-data")
         .attr("fill", d => {
-            const alpha3 = NUM_TO_ALPHA3[d.id];
-            const count = alpha3 ? (countryData[alpha3] || 0) : 0;
-            return count > 0 ? colorScale(count) : null;
+            const c = getCount(d);
+            return c > 0 ? colorScale(c) : null;
+        })
+        .on("mouseenter", function (event, d) {
+            d3.selectAll(".country").style("opacity", 0.4);
+            d3.select(this).style("opacity", 1);
+            showTooltip(event, d, getCount(d));
+        })
+        .on("mousemove", function (event) {
+            positionTooltip(event);
+        })
+        .on("mouseleave", function () {
+            d3.selectAll(".country").style("opacity", null);
+            hideTooltip();
         });
 
     drawLegend(svg, colorScale, maxCount, width, height);
+}
+
+// --------------- Tooltip ---------------
+function showTooltip(event, d, count) {
+    const name = d.properties.name || "Unknown";
+    if (count > 0) {
+        const plural = count === 1 ? "film" : "films";
+        tooltip.innerHTML =
+            `<div class="tt-country">${name}</div>` +
+            `<div class="tt-count">${count} ${plural}</div>`;
+    } else {
+        tooltip.innerHTML =
+            `<div class="tt-country">${name}</div>` +
+            `<div class="tt-none">No films watched</div>`;
+    }
+    tooltip.style.opacity = "1";
+    positionTooltip(event);
+}
+
+function positionTooltip(event) {
+    const pad = 14;
+    let x = event.clientX + pad;
+    let y = event.clientY + pad;
+    const rect = tooltip.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth) x = event.clientX - rect.width - pad;
+    if (y + rect.height > window.innerHeight) y = event.clientY - rect.height - pad;
+    tooltip.style.left = x + "px";
+    tooltip.style.top = y + "px";
+}
+
+function hideTooltip() {
+    tooltip.style.opacity = "0";
 }
 
 // --------------- Legend ---------------

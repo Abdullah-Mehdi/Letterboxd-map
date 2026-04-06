@@ -202,9 +202,46 @@ button[type="submit"]:disabled {
 .country {
     stroke: #2c3440;
     stroke-width: 0.5;
-    transition: opacity 0.15s;
+    transition: opacity 0.15s, stroke-width 0.15s;
+    cursor: pointer;
 }
 
 .country.no-data {
     fill: #2a2f35;
+}
+
+.country:hover {
+    stroke: #fff;
+    stroke-width: 1.2;
+}
+
+/* ---------- Tooltip ---------- */
+
+.tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: #1c2228;
+    border: 1px solid #2c3440;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    color: #e1e3e5;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.tooltip .tt-country {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.tooltip .tt-count {
+    color: #00e054;
+}
+
+.tooltip .tt-none {
+    color: #667;
 }
