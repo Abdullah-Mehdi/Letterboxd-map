@@ -1,6 +1,6 @@
 """Aggregate film production countries into per-country watch counts.
 
-Takes a list of films (from the CSV parser or scraper), resolves each
+Takes a list of films (from the CSV parser), resolves each
 film's production countries via TMDb (with cache), and returns a dict
 mapping ISO 3166-1 alpha-3 country codes to watch counts.  Alpha-3 codes
 match the identifiers used in Natural Earth / TopoJSON world maps.
@@ -73,8 +73,7 @@ def aggregate_countries(
     """Build a {alpha3_country_code: film_count} dict from a film list.
 
     Args:
-        films: list of dicts with keys 'title' and 'year' (from csv_parser
-               or scraper).
+        films: list of dicts with keys 'title' and 'year' (from csv_parser).
         progress_callback: optional callable(current, total, title) invoked
                            after each film is processed.
 

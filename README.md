@@ -4,7 +4,7 @@ A web app that visualizes which countries your watched films come from by colori
 
 ## Features
 
-- **Two input methods**: enter a Letterboxd username to scrape your profile, or upload your Letterboxd data export (CSV or ZIP)
+- **Upload your Letterboxd export**: uses the official CSV/ZIP data export (no scraping, respects Letterboxd's data access policy)
 - **Interactive choropleth map**: countries colored by film count using a green sequential scale
 - **Hover tooltips**: see the country name and exact film count
 - **Zoom and pan**: scroll to zoom in, drag to pan around the map
@@ -39,12 +39,10 @@ Open http://localhost:5000 in your browser.
 
 ## Usage
 
-### Option 1: By Username
-Enter any public Letterboxd username and click **Generate Map**. The app scrapes their watched films and looks up each one on TMDb.
-
-### Option 2: Upload CSV / ZIP
 1. Go to your [Letterboxd export page](https://letterboxd.com/settings/data/) and download your data
 2. Upload the `.zip` file directly, or extract it and upload `watched.csv`
+3. Wait for TMDb to look up each film's production countries
+4. Explore the colored world map
 
 Processing time depends on the number of films. TMDb lookups are rate-limited to ~4/second, so a 500-film library takes about 4 minutes on the first run. Subsequent runs are much faster thanks to the SQLite cache.
 
@@ -57,7 +55,6 @@ Letterboxd-map/
   requirements.txt        Python dependencies
   services/
     csv_parser.py          Letterboxd CSV/ZIP parser
-    scraper.py             Letterboxd profile scraper
     tmdb.py                TMDb API client with rate limiting
     cache.py               SQLite cache for TMDb results
     aggregator.py          Country count aggregation + ISO code mapping

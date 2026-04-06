@@ -6,7 +6,6 @@ import uuid
 from flask import Flask, Response, render_template, request, jsonify
 
 from services.csv_parser import parse_watched_csv, parse_letterboxd_zip
-from services.scraper import scrape_user_films
 from services.aggregator import aggregate_countries
 
 app = Flask(__name__)
@@ -40,26 +39,6 @@ def upload_csv():
 
     if not films:
         return jsonify(error="No watched films found in the uploaded file."), 400
-
-    job_id = _start_aggregation_job(films)
-    return jsonify(job_id=job_id, total_films=len(films))
-
-
-@app.route("/api/scrape", methods=["POST"])
-def scrape_username():
-    """Accept a Letterboxd username and start processing."""
-    data = request.get_json(silent=True) or {}
-    username = data.get("username", "").strip()
-    if not username:
-        return jsonify(error="Please provide a Letterboxd username."), 400
-
-    try:
-        films = scrape_user_films(username)
-    except Exception as e:
-        return jsonify(error=f"Could not scrape user '{username}': {e}"), 400
-
-    if not films:
-        return jsonify(error=f"No watched films found for user '{username}'."), 400
 
     job_id = _start_aggregation_job(films)
     return jsonify(job_id=job_id, total_films=len(films))

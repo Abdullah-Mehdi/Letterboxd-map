@@ -53,45 +53,13 @@ document.getElementById("error-dismiss").addEventListener("click", () => {
     errorBanner.classList.add("hidden");
 });
 
-// --------------- Tab switching ---------------
-document.querySelectorAll(".tab").forEach(btn => {
-    btn.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-        btn.classList.add("active");
-        document.getElementById(btn.dataset.tab).classList.add("active");
-    });
-});
-
 // --------------- File input label ---------------
 document.getElementById("file-input").addEventListener("change", e => {
     const name = e.target.files[0]?.name || "Choose watched.csv or export .zip";
     document.getElementById("file-name").textContent = name;
 });
 
-// --------------- Form submissions ---------------
-document.getElementById("username-form").addEventListener("submit", async e => {
-    e.preventDefault();
-    const username = document.getElementById("username-input").value.trim();
-    if (!username) return;
-    disableForms();
-    showSpinner("Fetching films for " + username + "...");
-
-    try {
-        const resp = await fetch("/api/scrape", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({username}),
-        });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || "Request failed");
-        showProgressBar();
-        listenForProgress(data.job_id, data.total_films);
-    } catch (err) {
-        showError(err.message);
-    }
-});
-
+// --------------- Form submission ---------------
 document.getElementById("upload-form").addEventListener("submit", async e => {
     e.preventDefault();
     const file = document.getElementById("file-input").files[0];
