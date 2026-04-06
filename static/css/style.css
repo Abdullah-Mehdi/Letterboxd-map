@@ -236,6 +236,83 @@ button[type="submit"]:disabled {
     stroke-width: 1.2;
 }
 
+/* ---------- Ranking table ---------- */
+
+#ranking-section {
+    width: 100%;
+    max-width: 700px;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+#ranking-section h2 {
+    font-size: 1.2rem;
+    color: #e1e3e5;
+    margin-bottom: 0.75rem;
+}
+
+#ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #1c2228;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #2c3440;
+}
+
+#ranking-table thead th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+    color: #667;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #2c3440;
+    background: #1a1f24;
+}
+
+#ranking-table thead th:first-child {
+    width: 3rem;
+    text-align: center;
+}
+
+#ranking-table thead th:last-child {
+    width: 5rem;
+    text-align: right;
+}
+
+#ranking-table tbody td {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    color: #ccd;
+    border-bottom: 1px solid #232a31;
+}
+
+#ranking-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+#ranking-table tbody td:first-child {
+    text-align: center;
+    color: #667;
+    font-size: 0.85rem;
+}
+
+#ranking-table tbody td:last-child {
+    text-align: right;
+    color: #00e054;
+    font-weight: 600;
+}
+
+#ranking-table tbody tr {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+#ranking-table tbody tr:hover {
+    background: #232a31;
+}
+
 /* ---------- Film panel ---------- */
 
 #film-panel {

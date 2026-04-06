@@ -189,6 +189,7 @@ async function renderMap(countryData) {
         });
 
     drawLegend(svg, colorScale, maxCount, width, height);
+    buildRanking(countryData, countries);
 }
 
 // --------------- Film panel ---------------
@@ -219,6 +220,38 @@ function closeFilmPanel() {
     filmPanel.addEventListener("transitionend", () => {
         filmPanel.classList.add("hidden");
     }, {once: true});
+}
+
+// --------------- Country ranking ---------------
+function buildRanking(countryData, geoCountries) {
+    // Map alpha-3 codes to human-readable names via the TopoJSON features
+    const alpha3ToName = {};
+    geoCountries.features.forEach(f => {
+        const a3 = NUM_TO_ALPHA3[f.id];
+        if (a3 && f.properties.name) alpha3ToName[a3] = f.properties.name;
+    });
+
+    const sorted = Object.entries(countryData)
+        .map(([code, count]) => ({code, count, name: alpha3ToName[code] || code}))
+        .sort((a, b) => b.count - a.count);
+
+    const tbody = document.getElementById("ranking-body");
+    tbody.innerHTML = "";
+
+    sorted.forEach((row, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+            `<td>${i + 1}</td>` +
+            `<td>${row.name}</td>` +
+            `<td>${row.count}</td>`;
+        tr.addEventListener("click", () => {
+            const films = _filmsByCountry[row.code] || [];
+            openFilmPanel(row.name, row.count, films);
+        });
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById("ranking-section").classList.remove("hidden");
 }
 
 // --------------- Tooltip ---------------
