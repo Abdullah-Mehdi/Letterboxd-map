@@ -16,8 +16,11 @@ _session = requests.Session()
 RATE_LIMIT_DELAY = 0.26  # ~4 requests/sec keeps us well under TMDb's 40/10s
 
 
+MAX_RETRIES = 3
+
+
 def _get(endpoint: str, params: dict | None = None) -> dict:
-    """Make a GET request to the TMDb API with automatic rate limiting."""
+    """Make a GET request to the TMDb API with rate limiting and retries."""
     if not TMDB_API_KEY:
         raise RuntimeError(
             "TMDB_API_KEY is not set. "
@@ -27,14 +30,25 @@ def _get(endpoint: str, params: dict | None = None) -> dict:
     params["api_key"] = TMDB_API_KEY
     url = f"{TMDB_BASE_URL}{endpoint}"
 
-    resp = _session.get(url, params=params, timeout=10)
-    if resp.status_code == 429:
-        retry_after = int(resp.headers.get("Retry-After", 2))
-        time.sleep(retry_after)
-        resp = _session.get(url, params=params, timeout=10)
-    resp.raise_for_status()
+    for attempt in range(MAX_RETRIES):
+        try:
+            resp = _session.get(url, params=params, timeout=10)
+        except requests.RequestException:
+            if attempt == MAX_RETRIES - 1:
+                raise
+            time.sleep(2 ** attempt)
+            continue
 
-    time.sleep(RATE_LIMIT_DELAY)
+        if resp.status_code == 429:
+            retry_after = int(resp.headers.get("Retry-After", 2))
+            time.sleep(retry_after)
+            continue
+
+        resp.raise_for_status()
+        time.sleep(RATE_LIMIT_DELAY)
+        return resp.json()
+
+    resp.raise_for_status()
     return resp.json()
 
 

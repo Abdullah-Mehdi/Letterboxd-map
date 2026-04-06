@@ -40,10 +40,18 @@ const NUM_TO_ALPHA3 = {
 // --------------- DOM refs ---------------
 const inputSection    = document.getElementById("input-section");
 const progressSection = document.getElementById("progress-section");
+const progressBarWrap = document.getElementById("progress-bar-wrapper");
 const progressBar     = document.getElementById("progress-bar");
 const progressText    = document.getElementById("progress-text");
+const spinner         = document.getElementById("spinner");
+const errorBanner     = document.getElementById("error-banner");
+const errorText       = document.getElementById("error-text");
 const mapSection      = document.getElementById("map-section");
 const mapContainer    = document.getElementById("map-container");
+
+document.getElementById("error-dismiss").addEventListener("click", () => {
+    errorBanner.classList.add("hidden");
+});
 
 // --------------- Tab switching ---------------
 document.querySelectorAll(".tab").forEach(btn => {
@@ -67,7 +75,7 @@ document.getElementById("username-form").addEventListener("submit", async e => {
     const username = document.getElementById("username-input").value.trim();
     if (!username) return;
     disableForms();
-    showProgress();
+    showSpinner("Fetching films for " + username + "...");
 
     try {
         const resp = await fetch("/api/scrape", {
@@ -77,6 +85,7 @@ document.getElementById("username-form").addEventListener("submit", async e => {
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || "Request failed");
+        showProgressBar();
         listenForProgress(data.job_id, data.total_films);
     } catch (err) {
         showError(err.message);
@@ -88,7 +97,7 @@ document.getElementById("upload-form").addEventListener("submit", async e => {
     const file = document.getElementById("file-input").files[0];
     if (!file) return;
     disableForms();
-    showProgress();
+    showSpinner("Uploading and parsing...");
 
     try {
         const form = new FormData();
@@ -96,6 +105,7 @@ document.getElementById("upload-form").addEventListener("submit", async e => {
         const resp = await fetch("/api/upload", {method: "POST", body: form});
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || "Upload failed");
+        showProgressBar();
         listenForProgress(data.job_id, data.total_films);
     } catch (err) {
         showError(err.message);
@@ -303,15 +313,25 @@ function enableForms() {
     document.querySelectorAll("button[type=submit]").forEach(b => b.disabled = false);
 }
 
-function showProgress() {
+function showSpinner(message) {
+    errorBanner.classList.add("hidden");
     progressSection.classList.remove("hidden");
+    spinner.classList.remove("hidden");
+    progressBarWrap.classList.add("hidden");
+    progressText.textContent = message;
+}
+
+function showProgressBar() {
+    spinner.classList.add("hidden");
+    progressBarWrap.classList.remove("hidden");
     progressBar.style.width = "0%";
-    progressText.textContent = "Starting...";
+    progressText.textContent = "Looking up countries on TMDb...";
 }
 
 function showError(msg) {
     progressSection.classList.add("hidden");
     mapSection.classList.add("hidden");
+    errorText.textContent = msg;
+    errorBanner.classList.remove("hidden");
     enableForms();
-    alert(msg);
 }

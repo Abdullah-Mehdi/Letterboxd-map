@@ -36,11 +36,19 @@
         </div>
     </section>
 
+    <div id="error-banner" class="hidden">
+        <p id="error-text"></p>
+        <button id="error-dismiss">Dismiss</button>
+    </div>
+
     <section id="progress-section" class="hidden">
-        <div class="progress-bar-container">
-            <div id="progress-bar" class="progress-bar"></div>
+        <div id="spinner" class="spinner hidden"></div>
+        <div id="progress-bar-wrapper">
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <p id="progress-text">Starting...</p>
         </div>
-        <p id="progress-text">Starting...</p>
     </section>
 
     <section id="map-section" class="hidden">
