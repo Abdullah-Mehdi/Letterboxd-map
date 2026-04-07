@@ -61,6 +61,27 @@ ALPHA2_TO_ALPHA3 = {
     "GF": "GUF", "GP": "GLP", "MQ": "MTQ", "RE": "REU", "YT": "MYT",
     "NC": "NCL", "PF": "PYF", "AW": "ABW", "CW": "CUW", "SX": "SXM",
     "AN": "ANT",
+    # Historical / defunct states → modern successor
+    "SU": "RUS",  # Soviet Union → Russia
+    "DD": "DEU",  # East Germany → Germany
+    "XG": "DEU",  # East Germany (TMDb variant) → Germany
+    "YU": "SRB",  # Yugoslavia → Serbia
+    "CS": "CZE",  # Czechoslovakia / Serbia & Montenegro → Czech Republic
+    "XC": "CZE",  # Czechoslovakia (TMDb variant) → Czech Republic
+    "BU": "MMR",  # Burma → Myanmar
+    "ZR": "COD",  # Zaire → DR Congo
+    "TP": "TLS",  # East Timor (old code) → Timor-Leste
+    "RH": "ZWE",  # Rhodesia → Zimbabwe
+    "DY": "BEN",  # Dahomey → Benin
+    "HV": "BFA",  # Upper Volta → Burkina Faso
+    "NH": "VUT",  # New Hebrides → Vanuatu
+    "VD": "VNM",  # South Vietnam → Vietnam
+    "YD": "YEM",  # South Yemen → Yemen
+    "XU": "RUS",  # USSR (TMDb variant) → Russia
+    "SUHH": "RUS",  # ISO 3166-3 code for USSR → Russia
+    "YUCS": "SRB",  # ISO 3166-3 code for Yugoslavia → Serbia
+    "CSHH": "CZE",  # ISO 3166-3 code for Czechoslovakia → Czech Republic
+    "DDDE": "DEU",  # ISO 3166-3 code for East Germany → Germany
 }
 
 ALPHA3_TO_NAME = {v: k for k, v in ALPHA2_TO_ALPHA3.items()}
