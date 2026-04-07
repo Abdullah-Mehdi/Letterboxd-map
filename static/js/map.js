@@ -147,9 +147,9 @@ async function renderMap(countryData) {
     const world = await d3.json("/static/data/countries-50m.json");
     const countries = topojson.feature(world, world.objects.countries);
 
-    // Log scale with multi-hue palette for better differentiation
+    // Log scale with blue-to-purple palette
     const maxCount = Math.max(1, ...Object.values(countryData));
-    const colorScale = d3.scaleSequentialLog(d3.interpolateYlOrRd)
+    const colorScale = d3.scaleSequentialLog(d3.interpolateBuPu)
         .domain([1, Math.max(2, maxCount)]);
 
     // Lookup helper
