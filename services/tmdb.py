@@ -8,6 +8,7 @@ Two-step process:
        production_countries.
 """
 
+import math
 import re
 import time
 
@@ -79,7 +80,11 @@ def _score_result(result: dict, title: str, year: int | None,
 
     if tmdb_title == title_norm:
         score += 5
-    if tmdb_original == title_norm:
+
+    # Only reward original_title when it provides *new* information
+    # (i.e. it differs from the English title).  This avoids penalizing
+    # foreign-language films whose native titles use different scripts.
+    if tmdb_original != tmdb_title and tmdb_original == title_norm:
         score += 3
 
     release_date = result.get("release_date", "") or ""
@@ -88,11 +93,21 @@ def _score_result(result: dict, title: str, year: int | None,
 
     if slug_words:
         slug_norm = _normalize(slug_words)
-        for t in (tmdb_title, tmdb_original):
+        # Only check original_title against slug when it adds new info
+        titles_to_check = [tmdb_title]
+        if tmdb_original and tmdb_original != tmdb_title:
+            titles_to_check.append(tmdb_original)
+        for t in titles_to_check:
             if t == slug_norm:
                 score += 6
-            elif t and (t in slug_norm or slug_norm in t):
+            elif t in slug_norm or slug_norm in t:
                 score += 2
+
+    # Small popularity tiebreaker so well-known films win when
+    # title/year/slug scores are otherwise equal.
+    vote_count = result.get("vote_count", 0) or 0
+    if vote_count > 0:
+        score += min(math.log10(vote_count), 3.0)
 
     return score
 
