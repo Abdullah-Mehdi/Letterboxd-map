@@ -144,7 +144,7 @@ async function renderMap(countryData) {
 
     svg.call(zoom);
 
-    const world = await d3.json("/static/data/world-110m.json");
+    const world = await d3.json("/static/data/countries-50m.json");
     const countries = topojson.feature(world, world.objects.countries);
 
     // Log scale with multi-hue palette for better differentiation
