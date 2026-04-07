@@ -1,8 +1,9 @@
-"""TMDb API client for looking up film production countries.
+"""TMDb API client for looking up film metadata.
 
 Two-step process:
     1. Search for a film by title (+year) to get its TMDb ID.
-    2. Fetch movie details by TMDb ID to get production_countries.
+    2. Fetch movie details by TMDb ID to get original_language and
+       production_countries.
 """
 
 import time
@@ -67,23 +68,27 @@ def search_movie(title: str, year: int | None = None) -> int | None:
     return results[0]["id"]
 
 
-def get_production_countries(movie_id: int) -> list[dict]:
-    """Fetch production countries for a TMDb movie ID.
+def get_movie_details(movie_id: int) -> dict:
+    """Fetch original_language and production_countries for a TMDb movie ID.
 
-    Returns a list of dicts with keys: iso_3166_1 (alpha-2 code), name.
-    Example: [{"iso_3166_1": "KR", "name": "South Korea"}]
+    Returns a dict with keys:
+        original_language: ISO 639-1 code (e.g. "ko")
+        production_countries: list of dicts with iso_3166_1 and name
     """
     data = _get(f"/movie/{movie_id}")
-    return data.get("production_countries", [])
+    return {
+        "original_language": data.get("original_language", ""),
+        "production_countries": data.get("production_countries", []),
+    }
 
 
-def get_countries_for_film(title: str, year: int | None = None) -> list[dict]:
-    """Convenience: search + fetch countries in one call.
+def get_details_for_film(title: str, year: int | None = None) -> dict:
+    """Convenience: search + fetch details in one call.
 
-    Returns the production_countries list, or an empty list if the film
-    wasn't found on TMDb.
+    Returns a dict with original_language and production_countries,
+    or defaults if the film wasn't found on TMDb.
     """
     movie_id = search_movie(title, year)
     if movie_id is None:
-        return []
-    return get_production_countries(movie_id)
+        return {"original_language": "", "production_countries": []}
+    return get_movie_details(movie_id)

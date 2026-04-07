@@ -1,16 +1,20 @@
-"""Aggregate film production countries into per-country watch counts.
+"""Aggregate films into per-country watch counts.
 
-Takes a list of films (from the CSV parser), resolves each
-film's production countries via TMDb (with cache), and returns a dict
-mapping ISO 3166-1 alpha-3 country codes to watch counts.  Alpha-3 codes
-match the identifiers used in Natural Earth / TopoJSON world maps.
+For each film the original language is checked first.  If that language
+maps unambiguously to a single country (e.g. Korean → South Korea,
+Japanese → Japan) the film is attributed to that country.  For shared
+languages (English, Spanish, French, …) the production countries from
+TMDb are used as the fallback.
+
+Alpha-3 codes match the identifiers used in Natural Earth / TopoJSON
+world maps.
 """
 
 from collections import defaultdict
 from typing import Generator
 
 from services import cache
-from services.tmdb import get_countries_for_film, search_movie
+from services.tmdb import get_details_for_film, search_movie
 
 # ISO 3166-1 alpha-2 → alpha-3 mapping (all current countries)
 ALPHA2_TO_ALPHA3 = {
@@ -61,9 +65,72 @@ ALPHA2_TO_ALPHA3 = {
 
 ALPHA3_TO_NAME = {v: k for k, v in ALPHA2_TO_ALPHA3.items()}
 
+# ISO 639-1 language code → ISO 3166-1 alpha-2 country code
+# Only languages that unambiguously belong to one country.
+# Shared languages (en, es, fr, ar, pt, …) are intentionally omitted
+# so the aggregator falls back to production_countries for those.
+LANG_TO_COUNTRY = {
+    "ko": "KR",  # Korean → South Korea
+    "ja": "JP",  # Japanese → Japan
+    "th": "TH",  # Thai → Thailand
+    "vi": "VN",  # Vietnamese → Vietnam
+    "pl": "PL",  # Polish → Poland
+    "cs": "CZ",  # Czech → Czech Republic
+    "hu": "HU",  # Hungarian → Hungary
+    "el": "GR",  # Greek → Greece
+    "he": "IL",  # Hebrew → Israel
+    "uk": "UA",  # Ukrainian → Ukraine
+    "ka": "GE",  # Georgian → Georgia
+    "hy": "AM",  # Armenian → Armenia
+    "az": "AZ",  # Azerbaijani → Azerbaijan
+    "mn": "MN",  # Mongolian → Mongolia
+    "km": "KH",  # Khmer → Cambodia
+    "lo": "LA",  # Lao → Laos
+    "my": "MM",  # Burmese → Myanmar
+    "ne": "NP",  # Nepali → Nepal
+    "si": "LK",  # Sinhala → Sri Lanka
+    "is": "IS",  # Icelandic → Iceland
+    "lv": "LV",  # Latvian → Latvia
+    "lt": "LT",  # Lithuanian → Lithuania
+    "et": "EE",  # Estonian → Estonia
+    "fi": "FI",  # Finnish → Finland
+    "da": "DK",  # Danish → Denmark
+    "sk": "SK",  # Slovak → Slovakia
+    "sl": "SI",  # Slovenian → Slovenia
+    "hr": "HR",  # Croatian → Croatia
+    "bg": "BG",  # Bulgarian → Bulgaria
+    "mk": "MK",  # Macedonian → North Macedonia
+    "sq": "AL",  # Albanian → Albania
+    "bs": "BA",  # Bosnian → Bosnia and Herzegovina
+    "sr": "RS",  # Serbian → Serbia
+    "ka": "GE",  # Georgian → Georgia
+    "kk": "KZ",  # Kazakh → Kazakhstan
+    "uz": "UZ",  # Uzbek → Uzbekistan
+    "tk": "TM",  # Turkmen → Turkmenistan
+    "ky": "KG",  # Kyrgyz → Kyrgyzstan
+    "tg": "TJ",  # Tajik → Tajikistan
+    "bn": "BD",  # Bengali → Bangladesh
+    "tl": "PH",  # Tagalog → Philippines
+    "id": "ID",  # Indonesian → Indonesia
+    "cn": "CN",  # Cantonese (TMDb uses "cn") → China
+    "nb": "NO",  # Norwegian Bokmål → Norway
+    "no": "NO",  # Norwegian → Norway
+    "sv": "SE",  # Swedish → Sweden
+    "ro": "RO",  # Romanian → Romania
+}
+
 
 def _alpha2_to_alpha3(code: str) -> str | None:
     return ALPHA2_TO_ALPHA3.get(code.upper())
+
+
+def _lang_to_alpha3(lang_code: str) -> str | None:
+    """Map an ISO 639-1 language code to an alpha-3 country code,
+    but only for unambiguous languages."""
+    alpha2 = LANG_TO_COUNTRY.get(lang_code)
+    if alpha2 is None:
+        return None
+    return ALPHA2_TO_ALPHA3.get(alpha2)
 
 
 def aggregate_countries(
@@ -71,6 +138,10 @@ def aggregate_countries(
     progress_callback=None,
 ) -> dict:
     """Build per-country counts and film lists from a film list.
+
+    For each film the original language is checked first. If it maps
+    unambiguously to one country the film is attributed there. Otherwise
+    the production countries from TMDb are used.
 
     Args:
         films: list of dicts with keys 'title' and 'year' (from csv_parser).
@@ -92,22 +163,30 @@ def aggregate_countries(
 
         cached = cache.get(title, year)
         if cached is not None:
-            countries = cached
+            original_language = cached["original_language"]
+            countries = cached["production_countries"]
         else:
-            countries = get_countries_for_film(title, year)
+            details = get_details_for_film(title, year)
+            original_language = details["original_language"]
+            countries = details["production_countries"]
             tmdb_id = None
             if countries:
                 tmdb_id = search_movie(title, year)
-            cache.put(title, year, tmdb_id, countries)
+            cache.put(title, year, tmdb_id, countries, original_language)
 
         label = f"{title} ({year})" if year else title
 
-        for c in countries:
-            alpha2 = c.get("iso_3166_1", "")
-            alpha3 = _alpha2_to_alpha3(alpha2)
-            if alpha3:
-                counts[alpha3] += 1
-                film_lists[alpha3].append(label)
+        lang_alpha3 = _lang_to_alpha3(original_language)
+        if lang_alpha3:
+            counts[lang_alpha3] += 1
+            film_lists[lang_alpha3].append(label)
+        else:
+            for c in countries:
+                alpha2 = c.get("iso_3166_1", "")
+                alpha3 = _alpha2_to_alpha3(alpha2)
+                if alpha3:
+                    counts[alpha3] += 1
+                    film_lists[alpha3].append(label)
 
         if progress_callback:
             progress_callback(i + 1, total, title)
