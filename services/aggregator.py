@@ -91,7 +91,13 @@ ALPHA3_TO_NAME = {v: k for k, v in ALPHA2_TO_ALPHA3.items()}
 # Shared languages (en, es, fr, ar, pt, …) are intentionally omitted
 # so the aggregator falls back to production_countries for those.
 LANG_TO_COUNTRY = {
-    "ko": "KR",  # Korean → South Korea
+    # NOTE: Only languages spoken primarily in ONE country belong here.
+    # Omitted (fall back to production countries):
+    #   ko  - Korean (North Korea + South Korea)
+    #   ro  - Romanian (Romania + Moldova)
+    #   bn  - Bengali (Bangladesh + India's West Bengal)
+    #   sq  - Albanian (Albania + Kosovo)
+    #   en, es, fr, ar, pt, de, zh, ms, sw, ...  (many countries)
     "ja": "JP",  # Japanese → Japan
     "th": "TH",  # Thai → Thailand
     "vi": "VN",  # Vietnamese → Vietnam
@@ -121,23 +127,19 @@ LANG_TO_COUNTRY = {
     "hr": "HR",  # Croatian → Croatia
     "bg": "BG",  # Bulgarian → Bulgaria
     "mk": "MK",  # Macedonian → North Macedonia
-    "sq": "AL",  # Albanian → Albania
     "bs": "BA",  # Bosnian → Bosnia and Herzegovina
     "sr": "RS",  # Serbian → Serbia
-    "ka": "GE",  # Georgian → Georgia
     "kk": "KZ",  # Kazakh → Kazakhstan
     "uz": "UZ",  # Uzbek → Uzbekistan
     "tk": "TM",  # Turkmen → Turkmenistan
     "ky": "KG",  # Kyrgyz → Kyrgyzstan
     "tg": "TJ",  # Tajik → Tajikistan
-    "bn": "BD",  # Bengali → Bangladesh
     "tl": "PH",  # Tagalog → Philippines
     "id": "ID",  # Indonesian → Indonesia
     "cn": "CN",  # Cantonese (TMDb uses "cn") → China
     "nb": "NO",  # Norwegian Bokmål → Norway
     "no": "NO",  # Norwegian → Norway
     "sv": "SE",  # Swedish → Sweden
-    "ro": "RO",  # Romanian → Romania
 }
 
 
