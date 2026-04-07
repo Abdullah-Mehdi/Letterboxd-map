@@ -141,6 +141,17 @@ LANG_TO_COUNTRY = {
 }
 
 
+def _extract_slug(letterboxd_uri: str) -> str:
+    """Extract the film slug from a Letterboxd URI.
+
+    'https://letterboxd.com/film/paradise-1995/' → 'paradise-1995'
+    """
+    if not letterboxd_uri:
+        return ""
+    parts = letterboxd_uri.rstrip("/").split("/")
+    return parts[-1] if parts else ""
+
+
 def _alpha2_to_alpha3(code: str) -> str | None:
     return ALPHA2_TO_ALPHA3.get(code.upper())
 
@@ -181,18 +192,19 @@ def aggregate_countries(
     for i, film in enumerate(films):
         title = film["title"]
         year = film.get("year")
+        slug = _extract_slug(film.get("letterboxd_uri", ""))
 
         cached = cache.get(title, year)
         if cached is not None:
             original_language = cached["original_language"]
             countries = cached["production_countries"]
         else:
-            details = get_details_for_film(title, year)
+            details = get_details_for_film(title, year, slug=slug)
             original_language = details["original_language"]
             countries = details["production_countries"]
             tmdb_id = None
             if countries:
-                tmdb_id = search_movie(title, year)
+                tmdb_id = search_movie(title, year, slug=slug)
             cache.put(title, year, tmdb_id, countries, original_language)
 
         label = f"{title} ({year})" if year else title
