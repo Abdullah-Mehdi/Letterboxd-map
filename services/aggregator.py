@@ -98,6 +98,9 @@ LANG_TO_COUNTRY = {
     #   bn  - Bengali (Bangladesh + India's West Bengal)
     #   sq  - Albanian (Albania + Kosovo)
     #   en, es, fr, ar, pt, de, zh, ms, sw, ...  (many countries)
+    "hi": "IN",  # Hindi → India
+    "ta": "IN",  # Tamil → India
+    "te": "IN",  # Telugu → India
     "ja": "JP",  # Japanese → Japan
     "th": "TH",  # Thai → Thailand
     "vi": "VN",  # Vietnamese → Vietnam
