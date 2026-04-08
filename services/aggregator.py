@@ -97,8 +97,8 @@ LANG_TO_COUNTRY = {
     #   ro  - Romanian (Romania + Moldova)
     #   bn  - Bengali (Bangladesh + India's West Bengal)
     #   sq  - Albanian (Albania + Kosovo)
+    #   hi  - Hindi (India + Fiji)
     #   en, es, fr, ar, pt, de, zh, ms, sw, ...  (many countries)
-    "hi": "IN",  # Hindi → India
     "ta": "IN",  # Tamil → India
     "te": "IN",  # Telugu → India
     "ja": "JP",  # Japanese → Japan
@@ -143,6 +143,13 @@ LANG_TO_COUNTRY = {
     "nb": "NO",  # Norwegian Bokmål → Norway
     "no": "NO",  # Norwegian → Norway
     "sv": "SE",  # Swedish → Sweden
+}
+
+
+# Manual overrides for films that TMDb misattributes.
+# Keyed by Letterboxd slug → alpha-3 country code.
+SLUG_COUNTRY_OVERRIDE = {
+    "anuja": "IND",
 }
 
 
@@ -214,8 +221,11 @@ def aggregate_countries(
 
         label = f"{title} ({year})" if year else title
 
-        lang_alpha3 = _lang_to_alpha3(original_language)
-        if lang_alpha3:
+        override = SLUG_COUNTRY_OVERRIDE.get(slug)
+        if override:
+            counts[override] += 1
+            film_lists[override].append(label)
+        elif (lang_alpha3 := _lang_to_alpha3(original_language)):
             counts[lang_alpha3] += 1
             film_lists[lang_alpha3].append(label)
         else:
