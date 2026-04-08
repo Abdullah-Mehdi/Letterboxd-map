@@ -186,18 +186,22 @@ def aggregate_countries(
                            after each film is processed.
 
     Returns:
-        Dict with two keys:
-          "counts" - {alpha3_code: int}
-          "films"  - {alpha3_code: ["Title (Year)", ...]}
+        Dict with keys:
+          "counts"      - {alpha3_code: int}
+          "films"       - {alpha3_code: ["Title (Year)", ...]}
+          "avg_ratings" - {alpha3_code: float}  (only countries with rated films)
     """
     counts: dict[str, int] = defaultdict(int)
     film_lists: dict[str, list[str]] = defaultdict(list)
+    rating_sums: dict[str, float] = defaultdict(float)
+    rating_counts: dict[str, int] = defaultdict(int)
     total = len(films)
 
     for i, film in enumerate(films):
         title = film["title"]
         year = film.get("year")
         slug = _extract_slug(film.get("letterboxd_uri", ""))
+        rating = film.get("rating")
 
         cached = cache.get(title, year)
         if cached is not None:
@@ -214,22 +218,32 @@ def aggregate_countries(
 
         label = f"{title} ({year})" if year else title
 
+        def _attribute(alpha3: str) -> None:
+            counts[alpha3] += 1
+            film_lists[alpha3].append(label)
+            if rating is not None:
+                rating_sums[alpha3] += rating
+                rating_counts[alpha3] += 1
+
         lang_alpha3 = _lang_to_alpha3(original_language)
         if lang_alpha3:
-            counts[lang_alpha3] += 1
-            film_lists[lang_alpha3].append(label)
+            _attribute(lang_alpha3)
         else:
             for c in countries:
                 alpha2 = c.get("iso_3166_1", "")
                 alpha3 = _alpha2_to_alpha3(alpha2)
                 if alpha3:
-                    counts[alpha3] += 1
-                    film_lists[alpha3].append(label)
+                    _attribute(alpha3)
 
         if progress_callback:
             progress_callback(i + 1, total, title)
 
+    avg_ratings = {}
+    for code, total_rating in rating_sums.items():
+        avg_ratings[code] = round(total_rating / rating_counts[code], 2)
+
     return {
         "counts": dict(counts),
         "films": dict(film_lists),
+        "avg_ratings": avg_ratings,
     }

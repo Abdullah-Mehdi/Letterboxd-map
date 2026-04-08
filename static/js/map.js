@@ -82,6 +82,7 @@ document.getElementById("upload-form").addEventListener("submit", async e => {
 
 // --------------- SSE progress ---------------
 let _filmsByCountry = {};
+let _avgRatings = {};
 
 function listenForProgress(jobId, totalFilms) {
     const source = new EventSource(`/api/progress/${jobId}`);
@@ -96,6 +97,7 @@ function listenForProgress(jobId, totalFilms) {
         } else if (msg.type === "done") {
             source.close();
             _filmsByCountry = msg.films || {};
+            _avgRatings = msg.avg_ratings || {};
             renderMap(msg.counts);
         } else if (msg.type === "error") {
             source.close();
@@ -171,7 +173,8 @@ async function renderMap(countryData) {
         .on("mouseenter", function (event, d) {
             d3.selectAll(".country").style("opacity", 0.4);
             d3.select(this).style("opacity", 1);
-            showTooltip(event, d, getCount(d));
+            const alpha3 = NUM_TO_ALPHA3[d.id];
+            showTooltip(event, d, getCount(d), alpha3 ? _avgRatings[alpha3] : undefined);
         })
         .on("mousemove", function (event) {
             positionTooltip(event);
@@ -185,7 +188,8 @@ async function renderMap(countryData) {
             const name = d.properties.name || "Unknown";
             const count = getCount(d);
             const films = alpha3 ? (_filmsByCountry[alpha3] || []) : [];
-            openFilmPanel(name, count, films);
+            const avgRating = alpha3 ? _avgRatings[alpha3] : undefined;
+            openFilmPanel(name, count, films, avgRating);
         });
 
     drawLegend(svg, colorScale, maxCount, width, height);
@@ -193,10 +197,12 @@ async function renderMap(countryData) {
 }
 
 // --------------- Film panel ---------------
-function openFilmPanel(name, count, films) {
+function openFilmPanel(name, count, films, avgRating) {
     document.getElementById("panel-country").textContent = name;
     const plural = count === 1 ? "film" : "films";
-    document.getElementById("panel-count").textContent = count > 0 ? `${count} ${plural}` : "No films";
+    let countText = count > 0 ? `${count} ${plural}` : "No films";
+    if (avgRating !== undefined) countText += ` · ${avgRating.toFixed(1)}★`;
+    document.getElementById("panel-count").textContent = countText;
     const list = document.getElementById("panel-list");
     list.innerHTML = "";
     if (films.length === 0) {
@@ -223,45 +229,102 @@ function closeFilmPanel() {
 }
 
 // --------------- Country ranking ---------------
+let _rankingRows = [];
+let _rankingSortKey = "count";
+let _rankingSortAsc = false;
+
 function buildRanking(countryData, geoCountries) {
-    // Map alpha-3 codes to human-readable names via the TopoJSON features
     const alpha3ToName = {};
     geoCountries.features.forEach(f => {
         const a3 = NUM_TO_ALPHA3[f.id];
         if (a3 && f.properties.name) alpha3ToName[a3] = f.properties.name;
     });
 
-    const sorted = Object.entries(countryData)
-        .map(([code, count]) => ({code, count, name: alpha3ToName[code] || code}))
-        .sort((a, b) => b.count - a.count);
+    _rankingRows = Object.entries(countryData)
+        .map(([code, count]) => ({
+            code,
+            count,
+            name: alpha3ToName[code] || code,
+            rating: _avgRatings[code] ?? null,
+        }));
+
+    _rankingSortKey = "count";
+    _rankingSortAsc = false;
+    _renderRankingRows();
+    _initSortHeaders();
+    document.getElementById("ranking-section").classList.remove("hidden");
+}
+
+function _renderRankingRows() {
+    const sorted = [..._rankingRows].sort((a, b) => {
+        let av = a[_rankingSortKey], bv = b[_rankingSortKey];
+        if (av === null) av = -Infinity;
+        if (bv === null) bv = -Infinity;
+        return _rankingSortAsc ? av - bv : bv - av;
+    });
 
     const tbody = document.getElementById("ranking-body");
     tbody.innerHTML = "";
 
     sorted.forEach((row, i) => {
         const tr = document.createElement("tr");
+        const ratingStr = row.rating !== null ? row.rating.toFixed(1) + "★" : "—";
         tr.innerHTML =
             `<td>${i + 1}</td>` +
             `<td>${row.name}</td>` +
-            `<td>${row.count}</td>`;
+            `<td>${row.count}</td>` +
+            `<td>${ratingStr}</td>`;
         tr.addEventListener("click", () => {
             const films = _filmsByCountry[row.code] || [];
-            openFilmPanel(row.name, row.count, films);
+            openFilmPanel(row.name, row.count, films, row.rating ?? undefined);
         });
         tbody.appendChild(tr);
     });
+}
 
-    document.getElementById("ranking-section").classList.remove("hidden");
+function _initSortHeaders() {
+    document.querySelectorAll("#ranking-table th.sortable").forEach(th => {
+        th.addEventListener("click", () => {
+            const key = th.dataset.sort;
+            if (_rankingSortKey === key) {
+                _rankingSortAsc = !_rankingSortAsc;
+            } else {
+                _rankingSortKey = key;
+                _rankingSortAsc = false;
+            }
+            _updateSortArrows();
+            _renderRankingRows();
+        });
+    });
+    _updateSortArrows();
+}
+
+function _updateSortArrows() {
+    document.querySelectorAll("#ranking-table th.sortable").forEach(th => {
+        const arrow = th.querySelector(".sort-arrow");
+        const key = th.dataset.sort;
+        if (key === _rankingSortKey) {
+            th.classList.add("active");
+            arrow.textContent = _rankingSortAsc ? "▲" : "▼";
+        } else {
+            th.classList.remove("active");
+            arrow.textContent = "";
+        }
+    });
 }
 
 // --------------- Tooltip ---------------
-function showTooltip(event, d, count) {
+function showTooltip(event, d, count, avgRating) {
     const name = d.properties.name || "Unknown";
     if (count > 0) {
         const plural = count === 1 ? "film" : "films";
-        tooltip.innerHTML =
+        let html =
             `<div class="tt-country">${name}</div>` +
             `<div class="tt-count">${count} ${plural}</div>`;
+        if (avgRating !== undefined) {
+            html += `<div class="tt-rating">Avg rating: ${avgRating.toFixed(1)}★</div>`;
+        }
+        tooltip.innerHTML = html;
     } else {
         tooltip.innerHTML =
             `<div class="tt-country">${name}</div>` +

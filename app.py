@@ -85,7 +85,12 @@ def _start_aggregation_job(films: list[dict]) -> str:
 
         try:
             result = aggregate_countries(films, progress_callback=on_progress)
-            q.put({"type": "done", "counts": result["counts"], "films": result["films"]})
+            q.put({
+                "type": "done",
+                "counts": result["counts"],
+                "films": result["films"],
+                "avg_ratings": result["avg_ratings"],
+            })
         except Exception as e:
             q.put({"type": "error", "error": str(e)})
 
