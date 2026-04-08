@@ -146,13 +146,6 @@ LANG_TO_COUNTRY = {
 }
 
 
-# Manual overrides for films that TMDb misattributes.
-# Keyed by Letterboxd slug → alpha-3 country code.
-SLUG_COUNTRY_OVERRIDE = {
-    "anuja": "IND",
-}
-
-
 def _extract_slug(letterboxd_uri: str) -> str:
     """Extract the film slug from a Letterboxd URI.
 
@@ -221,11 +214,8 @@ def aggregate_countries(
 
         label = f"{title} ({year})" if year else title
 
-        override = SLUG_COUNTRY_OVERRIDE.get(slug)
-        if override:
-            counts[override] += 1
-            film_lists[override].append(label)
-        elif (lang_alpha3 := _lang_to_alpha3(original_language)):
+        lang_alpha3 = _lang_to_alpha3(original_language)
+        if lang_alpha3:
             counts[lang_alpha3] += 1
             film_lists[lang_alpha3].append(label)
         else:
