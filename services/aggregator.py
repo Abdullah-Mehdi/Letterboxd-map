@@ -151,6 +151,7 @@ LANG_TO_COUNTRY = {
 TITLE_COUNTRY_OVERRIDE = {
     ("Anuja", 2024): "IND",       # Indian short film, TMDb lists as US production
     ("Birdsong", 2022): "LAO",    # Lao film, TMDb returns British "Birdsong"
+    ("Anima", 2013): "ECU",       # Ecuadorian film, TMDb returns wrong match
 }
 
 
