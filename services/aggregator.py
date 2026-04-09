@@ -146,6 +146,14 @@ LANG_TO_COUNTRY = {
 }
 
 
+# Manual overrides for films that TMDb consistently misattributes.
+# Keyed by (title, year) → alpha-3 country code.
+TITLE_COUNTRY_OVERRIDE = {
+    ("Anuja", 2024): "IND",       # Indian short film, TMDb lists as US production
+    ("Birdsong", 2022): "LAO",    # Lao film, TMDb returns British "Birdsong"
+}
+
+
 def _extract_slug(letterboxd_uri: str) -> str:
     """Extract the film slug from a Letterboxd URI.
 
@@ -225,8 +233,10 @@ def aggregate_countries(
                 rating_sums[alpha3] += rating
                 rating_counts[alpha3] += 1
 
-        lang_alpha3 = _lang_to_alpha3(original_language)
-        if lang_alpha3:
+        override = TITLE_COUNTRY_OVERRIDE.get((title, year))
+        if override:
+            _attribute(override)
+        elif (lang_alpha3 := _lang_to_alpha3(original_language)):
             _attribute(lang_alpha3)
         else:
             for c in countries:
