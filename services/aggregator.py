@@ -153,7 +153,7 @@ TITLE_COUNTRY_OVERRIDE = {
     ("Birdsong", 2022): "LAO",
     ("Anima", 2013): "ECU",
     ("Something Old, New, Borrowed and Blue", 2019): "IDN",
-    ("Something Old New Borrowed and Blue", 2019): "IDN",,
+    ("Something Old New Borrowed and Blue", 2019): "IDN",
     ("Home", 2018): "GRL",
 }
 
