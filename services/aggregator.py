@@ -149,9 +149,10 @@ LANG_TO_COUNTRY = {
 # Manual overrides for films that TMDb consistently misattributes.
 # Keyed by (title, year) → alpha-3 country code.
 TITLE_COUNTRY_OVERRIDE = {
-    ("Anuja", 2024): "IND",       # Indian short film, TMDb lists as US production
-    ("Birdsong", 2022): "LAO",    # Lao film, TMDb returns British "Birdsong"
-    ("Anima", 2013): "ECU",       # Ecuadorian film, TMDb returns wrong match
+    ("Anuja", 2024): "IND",
+    ("Birdsong", 2022): "LAO",
+    ("Anima", 2013): "ECU",
+    ("Something Old, New, Borrowed and Blue", 2019): "IDN",
 }
 
 
