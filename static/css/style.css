@@ -236,6 +236,15 @@ button[type="submit"]:disabled {
     stroke-width: 1.2;
 }
 
+.small-marker {
+    transition: r 0.15s, stroke-width 0.15s;
+}
+
+.small-marker:hover {
+    r: 5;
+    stroke-width: 1;
+}
+
 /* ---------- Ranking table ---------- */
 
 #ranking-section {

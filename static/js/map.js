@@ -192,6 +192,54 @@ async function renderMap(countryData) {
             openFilmPanel(name, count, films, avgRating);
         });
 
+    // Circle markers for tiny countries that have data
+    const minVisibleArea = 40;
+    const smallCountries = countries.features.filter(d => {
+        if (getCount(d) === 0) return false;
+        const bounds = path.bounds(d);
+        const w = bounds[1][0] - bounds[0][0];
+        const h = bounds[1][1] - bounds[0][1];
+        return w * h < minVisibleArea;
+    });
+
+    g.selectAll(".small-marker")
+        .data(smallCountries)
+        .join("circle")
+        .attr("class", "small-marker")
+        .attr("cx", d => {
+            const centroid = path.centroid(d);
+            return centroid[0];
+        })
+        .attr("cy", d => {
+            const centroid = path.centroid(d);
+            return centroid[1];
+        })
+        .attr("r", 3)
+        .attr("fill", d => colorScale(getCount(d)))
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 0.5)
+        .style("cursor", "pointer")
+        .on("mouseenter", function (event, d) {
+            d3.selectAll(".country").style("opacity", 0.4);
+            const alpha3 = NUM_TO_ALPHA3[d.id];
+            showTooltip(event, d, getCount(d), alpha3 ? _avgRatings[alpha3] : undefined);
+        })
+        .on("mousemove", function (event) {
+            positionTooltip(event);
+        })
+        .on("mouseleave", function () {
+            d3.selectAll(".country").style("opacity", null);
+            hideTooltip();
+        })
+        .on("click", function (event, d) {
+            const alpha3 = NUM_TO_ALPHA3[d.id];
+            const name = d.properties.name || "Unknown";
+            const count = getCount(d);
+            const films = alpha3 ? (_filmsByCountry[alpha3] || []) : [];
+            const avgRating = alpha3 ? _avgRatings[alpha3] : undefined;
+            openFilmPanel(name, count, films, avgRating);
+        });
+
     drawLegend(svg, colorScale, maxCount, width, height);
     buildRanking(countryData, countries);
 }
