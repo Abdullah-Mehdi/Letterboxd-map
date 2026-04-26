@@ -257,7 +257,39 @@ button[type="submit"]:disabled {
 #ranking-section h2 {
     font-size: 1.2rem;
     color: #e1e3e5;
+}
+
+.ranking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
     margin-bottom: 0.75rem;
+}
+
+.ranking-header .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #9ab;
+    font-size: 0.85rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.ranking-header .toggle input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: #00e054;
+}
+
+.ranking-header .toggle:hover {
+    color: #e1e3e5;
+}
+
+#ranking-table tbody tr.zero-row td:nth-child(3) {
+    color: #557;
+    font-weight: 500;
 }
 
 #ranking-table {

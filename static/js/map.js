@@ -367,31 +367,69 @@ function closeFilmPanel() {
 let _rankingRows = [];
 let _rankingSortKey = "count";
 let _rankingSortAsc = false;
+let _showZeroCountries = false;
 
 function buildRanking(countryData, geoCountries) {
+    // Build alpha3 -> display name from real sovereign features only.
+    // Skip territory features so we don't add them as separate rows
+    // (their counts already fold into the parent in countryData).
     const alpha3ToName = {};
     geoCountries.features.forEach(f => {
+        if (NAME_TO_PARENT_ALPHA3[f.properties.name]) return;
+        if (NUM_TO_PARENT_ALPHA3[f.id]) return;
         const a3 = NUM_TO_ALPHA3[f.id];
-        if (a3 && f.properties.name) alpha3ToName[a3] = f.properties.name;
+        if (a3 && f.properties.name && !alpha3ToName[a3]) {
+            alpha3ToName[a3] = f.properties.name;
+        }
     });
 
-    _rankingRows = Object.entries(countryData)
-        .map(([code, count]) => ({
+    const seen = new Set();
+    _rankingRows = [];
+
+    Object.entries(countryData).forEach(([code, count]) => {
+        seen.add(code);
+        _rankingRows.push({
             code,
             count,
             name: alpha3ToName[code] || code,
             rating: _avgRatings[code] ?? null,
-        }));
+        });
+    });
+
+    Object.entries(alpha3ToName).forEach(([code, name]) => {
+        if (seen.has(code)) return;
+        _rankingRows.push({
+            code,
+            count: 0,
+            name,
+            rating: null,
+        });
+    });
 
     _rankingSortKey = "count";
     _rankingSortAsc = false;
+
+    const toggle = document.getElementById("show-zero-toggle");
+    if (toggle && !toggle._wired) {
+        toggle.addEventListener("change", e => {
+            _showZeroCountries = e.target.checked;
+            _renderRankingRows();
+        });
+        toggle._wired = true;
+    }
+    if (toggle) _showZeroCountries = toggle.checked;
+
     _renderRankingRows();
     _initSortHeaders();
     document.getElementById("ranking-section").classList.remove("hidden");
 }
 
 function _renderRankingRows() {
-    const sorted = [..._rankingRows].sort((a, b) => {
+    const filtered = _showZeroCountries
+        ? _rankingRows
+        : _rankingRows.filter(r => r.count > 0);
+
+    const sorted = filtered.sort((a, b) => {
         let av = a[_rankingSortKey], bv = b[_rankingSortKey];
         if (av === null) av = -Infinity;
         if (bv === null) bv = -Infinity;
@@ -403,6 +441,7 @@ function _renderRankingRows() {
 
     sorted.forEach((row, i) => {
         const tr = document.createElement("tr");
+        if (row.count === 0) tr.classList.add("zero-row");
         const ratingStr = row.rating !== null ? row.rating.toFixed(1) + "★" : "—";
         tr.innerHTML =
             `<td>${i + 1}</td>` +
