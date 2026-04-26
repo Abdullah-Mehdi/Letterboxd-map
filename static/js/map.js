@@ -279,14 +279,17 @@ async function renderMap(countryData) {
     // Skip territories - they should silently inherit the parent country's
     // color from the polygon below (and adding a marker for them would
     // re-introduce the territory clutter we're trying to remove).
+    //
+    // Use projected polygon area (path.area), not bounding-box area: spread
+    // -out Pacific island nations like the Marshall Islands, Kiribati, FSM,
+    // Tuvalu and Palau have a huge bbox but a vanishingly small landmass.
+    // Path-area correctly catches both compact city-states and scattered
+    // archipelagos.
     const minVisibleArea = 40;
     const smallCountries = countries.features.filter(d => {
         if (getParentAlpha3(d)) return false;
         if (getCount(d) === 0) return false;
-        const bounds = path.bounds(d);
-        const w = bounds[1][0] - bounds[0][0];
-        const h = bounds[1][1] - bounds[0][1];
-        return w * h < minVisibleArea;
+        return path.area(d) < minVisibleArea;
     });
 
     g.selectAll(".small-marker")
