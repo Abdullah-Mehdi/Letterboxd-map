@@ -37,6 +37,61 @@ const NUM_TO_ALPHA3 = {
     "862":"VEN","882":"WSM","887":"YEM","894":"ZMB"
 };
 
+// Overseas territories / dependencies → parent sovereign alpha-3.
+// Keyed by the TopoJSON numeric ID. Territories listed here are visually
+// folded into the parent country (same color, parent's name in tooltip,
+// parent's film list on click).
+//
+// Preserved as separate (NOT in this map):
+//   HKG (344), MAC (446)  - distinct film industries
+//   TWN (158)             - politically separate
+//   GRL (304)             - manually preserved as separate
+const NUM_TO_PARENT_ALPHA3 = {
+    "016":"USA",  // American Samoa
+    "060":"GBR",  // Bermuda
+    "086":"GBR",  // British Indian Ocean Territory
+    "092":"GBR",  // British Virgin Islands
+    "136":"GBR",  // Cayman Islands
+    "184":"NZL",  // Cook Islands
+    "238":"GBR",  // Falkland Islands
+    "258":"FRA",  // French Polynesia
+    "260":"FRA",  // French Southern Territories
+    "316":"USA",  // Guam
+    "334":"AUS",  // Heard and McDonald Islands
+    "500":"GBR",  // Montserrat
+    "533":"NLD",  // Aruba
+    "534":"NLD",  // Sint Maarten
+    "540":"FRA",  // New Caledonia
+    "570":"NZL",  // Niue
+    "574":"AUS",  // Norfolk Island
+    "580":"USA",  // Northern Mariana Islands
+    "612":"GBR",  // Pitcairn Islands
+    "630":"USA",  // Puerto Rico
+    "652":"FRA",  // Saint Barthélemy
+    "654":"GBR",  // Saint Helena
+    "660":"GBR",  // Anguilla
+    "663":"FRA",  // Saint Martin (French)
+    "666":"FRA",  // Saint Pierre and Miquelon
+    "796":"GBR",  // Turks and Caicos
+    "831":"GBR",  // Guernsey
+    "832":"GBR",  // Jersey
+    "833":"GBR",  // Isle of Man
+    "850":"USA",  // US Virgin Islands
+    "876":"FRA",  // Wallis and Futuna
+};
+
+// Display names for parent countries (used when a territory polygon is
+// shown/hovered/clicked, so the user sees e.g. "France" rather than
+// "French Guiana").
+const ALPHA3_DISPLAY_NAME = {
+    "USA": "United States",
+    "GBR": "United Kingdom",
+    "FRA": "France",
+    "NLD": "Netherlands",
+    "NZL": "New Zealand",
+    "AUS": "Australia",
+};
+
 // --------------- DOM refs ---------------
 const inputSection    = document.getElementById("input-section");
 const progressSection = document.getElementById("progress-section");
@@ -154,9 +209,22 @@ async function renderMap(countryData) {
     const colorScale = d3.scaleSequentialLog(d3.interpolateBuPu)
         .domain([1, Math.max(2, maxCount)]);
 
-    // Lookup helper
+    // Lookup helpers. Territories are folded into their parent sovereign
+    // country, so a click/hover on e.g. French Guiana resolves to France.
+    function getResolvedAlpha3(d) {
+        return NUM_TO_PARENT_ALPHA3[d.id] || NUM_TO_ALPHA3[d.id] || null;
+    }
+
+    function getResolvedName(d) {
+        const parent = NUM_TO_PARENT_ALPHA3[d.id];
+        if (parent) {
+            return ALPHA3_DISPLAY_NAME[parent] || parent;
+        }
+        return d.properties.name || "Unknown";
+    }
+
     function getCount(d) {
-        const alpha3 = NUM_TO_ALPHA3[d.id];
+        const alpha3 = getResolvedAlpha3(d);
         return alpha3 ? (countryData[alpha3] || 0) : 0;
     }
 
@@ -173,8 +241,8 @@ async function renderMap(countryData) {
         .on("mouseenter", function (event, d) {
             d3.selectAll(".country").style("opacity", 0.4);
             d3.select(this).style("opacity", 1);
-            const alpha3 = NUM_TO_ALPHA3[d.id];
-            showTooltip(event, d, getCount(d), alpha3 ? _avgRatings[alpha3] : undefined);
+            const alpha3 = getResolvedAlpha3(d);
+            showTooltip(event, getResolvedName(d), getCount(d), alpha3 ? _avgRatings[alpha3] : undefined);
         })
         .on("mousemove", function (event) {
             positionTooltip(event);
@@ -184,17 +252,21 @@ async function renderMap(countryData) {
             hideTooltip();
         })
         .on("click", function (event, d) {
-            const alpha3 = NUM_TO_ALPHA3[d.id];
-            const name = d.properties.name || "Unknown";
+            const alpha3 = getResolvedAlpha3(d);
+            const name = getResolvedName(d);
             const count = getCount(d);
             const films = alpha3 ? (_filmsByCountry[alpha3] || []) : [];
             const avgRating = alpha3 ? _avgRatings[alpha3] : undefined;
             openFilmPanel(name, count, films, avgRating);
         });
 
-    // Circle markers for tiny countries that have data
+    // Circle markers for tiny countries that have data.
+    // Skip territories - they should silently inherit the parent country's
+    // color from the polygon below (and adding a marker for them would
+    // re-introduce the territory clutter we're trying to remove).
     const minVisibleArea = 40;
     const smallCountries = countries.features.filter(d => {
+        if (NUM_TO_PARENT_ALPHA3[d.id]) return false;
         if (getCount(d) === 0) return false;
         const bounds = path.bounds(d);
         const w = bounds[1][0] - bounds[0][0];
@@ -221,8 +293,8 @@ async function renderMap(countryData) {
         .style("cursor", "pointer")
         .on("mouseenter", function (event, d) {
             d3.selectAll(".country").style("opacity", 0.4);
-            const alpha3 = NUM_TO_ALPHA3[d.id];
-            showTooltip(event, d, getCount(d), alpha3 ? _avgRatings[alpha3] : undefined);
+            const alpha3 = getResolvedAlpha3(d);
+            showTooltip(event, getResolvedName(d), getCount(d), alpha3 ? _avgRatings[alpha3] : undefined);
         })
         .on("mousemove", function (event) {
             positionTooltip(event);
@@ -232,8 +304,8 @@ async function renderMap(countryData) {
             hideTooltip();
         })
         .on("click", function (event, d) {
-            const alpha3 = NUM_TO_ALPHA3[d.id];
-            const name = d.properties.name || "Unknown";
+            const alpha3 = getResolvedAlpha3(d);
+            const name = getResolvedName(d);
             const count = getCount(d);
             const films = alpha3 ? (_filmsByCountry[alpha3] || []) : [];
             const avgRating = alpha3 ? _avgRatings[alpha3] : undefined;
@@ -362,8 +434,7 @@ function _updateSortArrows() {
 }
 
 // --------------- Tooltip ---------------
-function showTooltip(event, d, count, avgRating) {
-    const name = d.properties.name || "Unknown";
+function showTooltip(event, name, count, avgRating) {
     if (count > 0) {
         const plural = count === 1 ? "film" : "films";
         let html =

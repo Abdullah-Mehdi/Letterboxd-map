@@ -86,6 +86,80 @@ ALPHA2_TO_ALPHA3 = {
 
 ALPHA3_TO_NAME = {v: k for k, v in ALPHA2_TO_ALPHA3.items()}
 
+# Overseas territories / dependencies → parent sovereign country (alpha-3).
+# Films attributed to these territories are folded into the parent so the
+# map isn't cluttered by tiny dependent territories.
+# Preserved as separate (NOT in this map):
+#   HKG, MAC  - distinct film industries
+#   TWN       - politically separate
+#   PSE       - politically separate
+#   GRL       - manually preserved as separate
+TERRITORY_TO_PARENT = {
+    # France
+    "GUF": "FRA",  # French Guiana
+    "GLP": "FRA",  # Guadeloupe
+    "MTQ": "FRA",  # Martinique
+    "REU": "FRA",  # Réunion
+    "MYT": "FRA",  # Mayotte
+    "NCL": "FRA",  # New Caledonia
+    "PYF": "FRA",  # French Polynesia
+    "WLF": "FRA",  # Wallis and Futuna
+    "SPM": "FRA",  # Saint Pierre and Miquelon
+    "BLM": "FRA",  # Saint Barthélemy
+    "MAF": "FRA",  # Saint Martin (French)
+    "ATF": "FRA",  # French Southern Territories
+    # United Kingdom
+    "FLK": "GBR",  # Falkland Islands
+    "GIB": "GBR",  # Gibraltar
+    "BMU": "GBR",  # Bermuda
+    "CYM": "GBR",  # Cayman Islands
+    "VGB": "GBR",  # British Virgin Islands
+    "TCA": "GBR",  # Turks and Caicos
+    "MSR": "GBR",  # Montserrat
+    "AIA": "GBR",  # Anguilla
+    "SHN": "GBR",  # Saint Helena
+    "GGY": "GBR",  # Guernsey
+    "JEY": "GBR",  # Jersey
+    "IMN": "GBR",  # Isle of Man
+    "PCN": "GBR",  # Pitcairn Islands
+    "IOT": "GBR",  # British Indian Ocean Territory
+    "SGS": "GBR",  # South Georgia
+    # Netherlands
+    "ABW": "NLD",  # Aruba
+    "CUW": "NLD",  # Curaçao
+    "SXM": "NLD",  # Sint Maarten
+    "BES": "NLD",  # Bonaire, Sint Eustatius and Saba
+    "ANT": "NLD",  # Netherlands Antilles (dissolved)
+    # United States
+    "PRI": "USA",  # Puerto Rico
+    "GUM": "USA",  # Guam
+    "VIR": "USA",  # US Virgin Islands
+    "ASM": "USA",  # American Samoa
+    "MNP": "USA",  # Northern Mariana Islands
+    "UMI": "USA",  # US Minor Outlying Islands
+    # New Zealand
+    "COK": "NZL",  # Cook Islands
+    "NIU": "NZL",  # Niue
+    "TKL": "NZL",  # Tokelau
+    # Norway
+    "SJM": "NOR",  # Svalbard and Jan Mayen
+    "BVT": "NOR",  # Bouvet Island
+    # Australia
+    "CXR": "AUS",  # Christmas Island
+    "CCK": "AUS",  # Cocos (Keeling) Islands
+    "NFK": "AUS",  # Norfolk Island
+    "HMD": "AUS",  # Heard and McDonald Islands
+    # Denmark
+    "FRO": "DNK",  # Faroe Islands
+    # Finland
+    "ALA": "FIN",  # Åland Islands
+}
+
+
+def _resolve_territory(alpha3: str) -> str:
+    """Fold a territory's alpha-3 into its parent sovereign nation."""
+    return TERRITORY_TO_PARENT.get(alpha3, alpha3)
+
 # ISO 639-1 language code → ISO 3166-1 alpha-2 country code
 # Only languages that unambiguously belong to one country.
 # Shared languages (en, es, fr, ar, pt, …) are intentionally omitted
@@ -231,6 +305,7 @@ def aggregate_countries(
         label = f"{title} ({year})" if year else title
 
         def _attribute(alpha3: str) -> None:
+            alpha3 = _resolve_territory(alpha3)
             counts[alpha3] += 1
             film_lists[alpha3].append(label)
             if rating is not None:
