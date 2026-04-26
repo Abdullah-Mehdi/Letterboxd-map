@@ -80,6 +80,15 @@ const NUM_TO_PARENT_ALPHA3 = {
     "876":"FRA",  // Wallis and Futuna
 };
 
+// Some TopoJSON features can't be resolved by numeric id alone — for
+// example, "Ashmore and Cartier Is." shares id "036" with Australia, and
+// "Indian Ocean Ter." (Christmas / Cocos Islands) ships with an empty id.
+// These are matched by feature name instead.
+const NAME_TO_PARENT_ALPHA3 = {
+    "Ashmore and Cartier Is.": "AUS",
+    "Indian Ocean Ter.": "AUS",
+};
+
 // Display names for parent countries (used when a territory polygon is
 // shown/hovered/clicked, so the user sees e.g. "France" rather than
 // "French Guiana").
@@ -211,12 +220,18 @@ async function renderMap(countryData) {
 
     // Lookup helpers. Territories are folded into their parent sovereign
     // country, so a click/hover on e.g. French Guiana resolves to France.
+    function getParentAlpha3(d) {
+        return NAME_TO_PARENT_ALPHA3[d.properties.name] ||
+               NUM_TO_PARENT_ALPHA3[d.id] ||
+               null;
+    }
+
     function getResolvedAlpha3(d) {
-        return NUM_TO_PARENT_ALPHA3[d.id] || NUM_TO_ALPHA3[d.id] || null;
+        return getParentAlpha3(d) || NUM_TO_ALPHA3[d.id] || null;
     }
 
     function getResolvedName(d) {
-        const parent = NUM_TO_PARENT_ALPHA3[d.id];
+        const parent = getParentAlpha3(d);
         if (parent) {
             return ALPHA3_DISPLAY_NAME[parent] || parent;
         }
@@ -266,7 +281,7 @@ async function renderMap(countryData) {
     // re-introduce the territory clutter we're trying to remove).
     const minVisibleArea = 40;
     const smallCountries = countries.features.filter(d => {
-        if (NUM_TO_PARENT_ALPHA3[d.id]) return false;
+        if (getParentAlpha3(d)) return false;
         if (getCount(d) === 0) return false;
         const bounds = path.bounds(d);
         const w = bounds[1][0] - bounds[0][0];
