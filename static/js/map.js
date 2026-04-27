@@ -325,17 +325,24 @@ async function renderMap(countryData) {
         return path.area(d) < minVisibleArea;
     });
 
+    // Tuvalu is missing from the 50m TopoJSON, so we render its marker
+    // by hand near Funafuti. Treated as a small-marker so it picks up the
+    // same hover/dim/click behavior as Palau, FSM, etc.
+    const tuvaluDatum = {id: "798", properties: {name: "Tuvalu"}};
+    const extraMarkers = getCount(tuvaluDatum) > 0 ? [tuvaluDatum] : [];
+    const tuvaluCenter = projection([179.2, -8.5]);
+
     g.selectAll(".small-marker")
-        .data(smallCountries)
+        .data([...smallCountries, ...extraMarkers])
         .join("circle")
         .attr("class", "small-marker")
         .attr("cx", d => {
-            const centroid = path.centroid(d);
-            return centroid[0];
+            if (d === tuvaluDatum) return tuvaluCenter[0];
+            return path.centroid(d)[0];
         })
         .attr("cy", d => {
-            const centroid = path.centroid(d);
-            return centroid[1];
+            if (d === tuvaluDatum) return tuvaluCenter[1];
+            return path.centroid(d)[1];
         })
         .attr("r", 3)
         .attr("fill", d => colorScale(getCount(d)))
@@ -418,6 +425,8 @@ function buildRanking(countryData, geoCountries) {
             alpha3ToName[a3] = f.properties.name;
         }
     });
+    // Tuvalu isn't in the 50m TopoJSON, so seed it manually.
+    alpha3ToName["TUV"] = "Tuvalu";
 
     const seen = new Set();
     _rankingRows = [];
