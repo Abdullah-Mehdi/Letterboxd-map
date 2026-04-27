@@ -34,14 +34,7 @@ const NUM_TO_ALPHA3 = {
     "768":"TGO","776":"TON","780":"TTO","784":"ARE","788":"TUN","792":"TUR",
     "795":"TKM","798":"TUV","800":"UGA","804":"UKR","807":"MKD","818":"EGY",
     "826":"GBR","834":"TZA","840":"USA","854":"BFA","858":"URY","860":"UZB",
-    "862":"VEN","882":"WSM","887":"YEM","894":"ZMB",
-    "336":"VAT"
-};
-
-// Some sovereign features in the 10m TopoJSON ship without a numeric id
-// (or with -99). They're resolved by exact feature name instead.
-const NAME_TO_ALPHA3 = {
-    "Kosovo": "XKX",
+    "862":"VEN","882":"WSM","887":"YEM","894":"ZMB"
 };
 
 // Overseas territories / dependencies → parent sovereign alpha-3.
@@ -60,24 +53,18 @@ const NUM_TO_PARENT_ALPHA3 = {
     "092":"GBR",  // British Virgin Islands
     "136":"GBR",  // Cayman Islands
     "184":"NZL",  // Cook Islands
-    "234":"DNK",  // Faroe Islands
     "238":"GBR",  // Falkland Islands
-    "239":"GBR",  // South Georgia and the Sandwich Islands
-    "248":"FIN",  // Åland Islands
     "258":"FRA",  // French Polynesia
     "260":"FRA",  // French Southern Territories
-    "292":"GBR",  // Gibraltar
     "316":"USA",  // Guam
     "334":"AUS",  // Heard and McDonald Islands
     "500":"GBR",  // Montserrat
-    "531":"NLD",  // Curaçao
     "533":"NLD",  // Aruba
     "534":"NLD",  // Sint Maarten
     "540":"FRA",  // New Caledonia
     "570":"NZL",  // Niue
     "574":"AUS",  // Norfolk Island
     "580":"USA",  // Northern Mariana Islands
-    "581":"USA",  // U.S. Minor Outlying Islands
     "612":"GBR",  // Pitcairn Islands
     "630":"USA",  // Puerto Rico
     "652":"FRA",  // Saint Barthélemy
@@ -85,7 +72,6 @@ const NUM_TO_PARENT_ALPHA3 = {
     "660":"GBR",  // Anguilla
     "663":"FRA",  // Saint Martin (French)
     "666":"FRA",  // Saint Pierre and Miquelon
-    "732":"MAR",  // Western Sahara → Morocco (de facto control)
     "796":"GBR",  // Turks and Caicos
     "831":"GBR",  // Guernsey
     "832":"GBR",  // Jersey
@@ -96,33 +82,12 @@ const NUM_TO_PARENT_ALPHA3 = {
 
 // Some TopoJSON features can't be resolved by numeric id alone — for
 // example, "Ashmore and Cartier Is." shares id "036" with Australia, and
-// the British base areas in Cyprus ship with an empty id.
+// "Indian Ocean Ter." (Christmas / Cocos Islands) ships with an empty id.
 // These are matched by feature name instead.
 const NAME_TO_PARENT_ALPHA3 = {
     "Ashmore and Cartier Is.": "AUS",
     "Indian Ocean Ter.": "AUS",
-    "Akrotiri": "GBR",
-    "Dhekelia": "GBR",
 };
-
-// Features dropped entirely from the map and ranking. These are mostly
-// disputed reefs / banks, uninhabited islands, military leases, partially
-// recognized states, and UN buffer zones - they aren't sovereign nations
-// and don't make sense as territories of one either.
-const SKIP_FEATURE_NAMES = new Set([
-    "Baikonur",
-    "Bajo Nuevo Bank",
-    "Clipperton I.",
-    "Coral Sea Is.",
-    "Cyprus U.N. Buffer Zone",
-    "N. Cyprus",
-    "Scarborough Reef",
-    "Serranilla Bank",
-    "Siachen Glacier",
-    "Somaliland",
-    "Spratly Is.",
-    "USNB Guantanamo Bay",
-]);
 
 // Display names for parent countries (used when a territory polygon is
 // shown/hovered/clicked, so the user sees e.g. "France" rather than
@@ -134,9 +99,6 @@ const ALPHA3_DISPLAY_NAME = {
     "NLD": "Netherlands",
     "NZL": "New Zealand",
     "AUS": "Australia",
-    "DNK": "Denmark",
-    "FIN": "Finland",
-    "MAR": "Morocco",
 };
 
 // --------------- DOM refs ---------------
@@ -239,6 +201,7 @@ async function renderMap(countryData) {
         .attr("viewBox", `0 0 ${width} ${height}`)
         .attr("preserveAspectRatio", "xMidYMid meet");
 
+    // Zoomable group
     const g = svg.append("g");
 
     const zoom = d3.zoom()
@@ -250,39 +213,9 @@ async function renderMap(countryData) {
     const world = await d3.json("/static/data/countries-50m.json");
     const countries = topojson.feature(world, world.objects.countries);
 
-    // Drop disputed reefs, military leases, UN buffer zones, partially
-    // recognized states, and uninhabited islands that aren't sovereign
-    // nations.
-    countries.features = countries.features.filter(f =>
-        !SKIP_FEATURE_NAMES.has(f.properties.name)
-    );
-
-    // Tuvalu isn't present in the 50m TopoJSON. Inject a synthetic
-    // tiny-polygon feature near Funafuti so it picks up a small-marker
-    // dot, gets colored, and shows up in the ranking like any other
-    // sovereign nation.
-    countries.features.push({
-        type: "Feature",
-        id: "798",
-        properties: {name: "Tuvalu"},
-        geometry: {
-            type: "Polygon",
-            coordinates: [[
-                [179.10, -8.55],
-                [179.30, -8.55],
-                [179.30, -8.45],
-                [179.10, -8.45],
-                [179.10, -8.55],
-            ]],
-        },
-    });
-
-    // Log scale with blue-to-purple palette. We compress the BuPu range to
-    // [0.25, 1.0] so even count=1 maps to a visibly tinted lavender rather
-    // than the near-white BuPu(0) ≈ #f7fcfd, which is indistinguishable
-    // from the page background once the user zooms out.
+    // Log scale with blue-to-purple palette
     const maxCount = Math.max(1, ...Object.values(countryData));
-    const colorScale = d3.scaleSequentialLog(t => d3.interpolateBuPu(0.25 + t * 0.75))
+    const colorScale = d3.scaleSequentialLog(d3.interpolateBuPu)
         .domain([1, Math.max(2, maxCount)]);
 
     // Lookup helpers. Territories are folded into their parent sovereign
@@ -294,10 +227,7 @@ async function renderMap(countryData) {
     }
 
     function getResolvedAlpha3(d) {
-        return getParentAlpha3(d)
-            || NUM_TO_ALPHA3[d.id]
-            || NAME_TO_ALPHA3[d.properties.name]
-            || null;
+        return getParentAlpha3(d) || NUM_TO_ALPHA3[d.id] || null;
     }
 
     function getResolvedName(d) {
