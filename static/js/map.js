@@ -239,18 +239,7 @@ async function renderMap(countryData) {
         .attr("viewBox", `0 0 ${width} ${height}`)
         .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // Sphere clip: prevents any polygon (especially 10m features that wrap
-    // around the antimeridian like Russia/Aleutians/Fiji/Kiribati/NZ) from
-    // bleeding outside the projected globe oval. The clip is applied to a
-    // static parent of the zoomable group so it doesn't scale with zoom.
-    svg.append("defs").append("clipPath")
-        .attr("id", "sphere-clip")
-        .append("path")
-        .datum({type: "Sphere"})
-        .attr("d", d3.geoPath().projection(projection));
-
-    const clipped = svg.append("g").attr("clip-path", "url(#sphere-clip)");
-    const g = clipped.append("g");
+    const g = svg.append("g");
 
     const zoom = d3.zoom()
         .scaleExtent([1, 8])
@@ -258,17 +247,35 @@ async function renderMap(countryData) {
 
     svg.call(zoom);
 
-    const world = await d3.json("/static/data/countries-10m.json");
+    const world = await d3.json("/static/data/countries-50m.json");
     const countries = topojson.feature(world, world.objects.countries);
 
     // Drop disputed reefs, military leases, UN buffer zones, partially
     // recognized states, and uninhabited islands that aren't sovereign
-    // nations. After this filter the dataset matches the canonical
-    // 197-sovereign-nations + Antarctica list, plus the few entities
-    // we explicitly preserve as separate (Greenland, Hong Kong, Macao).
+    // nations.
     countries.features = countries.features.filter(f =>
         !SKIP_FEATURE_NAMES.has(f.properties.name)
     );
+
+    // Tuvalu isn't present in the 50m TopoJSON. Inject a synthetic
+    // tiny-polygon feature near Funafuti so it picks up a small-marker
+    // dot, gets colored, and shows up in the ranking like any other
+    // sovereign nation.
+    countries.features.push({
+        type: "Feature",
+        id: "798",
+        properties: {name: "Tuvalu"},
+        geometry: {
+            type: "Polygon",
+            coordinates: [[
+                [179.10, -8.55],
+                [179.30, -8.55],
+                [179.30, -8.45],
+                [179.10, -8.45],
+                [179.10, -8.55],
+            ]],
+        },
+    });
 
     // Log scale with blue-to-purple palette. We compress the BuPu range to
     // [0.25, 1.0] so even count=1 maps to a visibly tinted lavender rather
