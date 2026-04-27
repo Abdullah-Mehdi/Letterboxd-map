@@ -237,7 +237,7 @@ button[type="submit"]:disabled {
 }
 
 .small-marker {
-    transition: r 0.15s, stroke-width 0.15s;
+    transition: r 0.15s, stroke-width 0.15s, opacity 0.15s;
 }
 
 .small-marker:hover {

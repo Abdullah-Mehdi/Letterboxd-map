@@ -243,6 +243,30 @@ async function renderMap(countryData) {
         return alpha3 ? (countryData[alpha3] || 0) : 0;
     }
 
+    // When hovering a feature, every other country/territory polygon
+    // and every other small-marker dims. Polygons (and markers) sharing
+    // the active alpha-3 stay fully opaque - this keeps overseas
+    // territories highlighted alongside their parent (e.g. hovering
+    // France lights up French Guiana, Martinique, etc.).
+    function highlightCountry(hoveredNode, activeAlpha3) {
+        const sameCountry = (d, node) => {
+            if (node === hoveredNode) return true;
+            if (!activeAlpha3) return false;
+            return getResolvedAlpha3(d) === activeAlpha3;
+        };
+        d3.selectAll(".country").style("opacity", function (d) {
+            return sameCountry(d, this) ? 1 : 0.4;
+        });
+        d3.selectAll(".small-marker").style("opacity", function (d) {
+            return sameCountry(d, this) ? 1 : 0.4;
+        });
+    }
+
+    function clearHighlight() {
+        d3.selectAll(".country").style("opacity", null);
+        d3.selectAll(".small-marker").style("opacity", null);
+    }
+
     // Draw countries inside zoomable group
     countryPaths = g.selectAll(".country")
         .data(countries.features)
@@ -254,16 +278,15 @@ async function renderMap(countryData) {
             return c > 0 ? colorScale(c) : null;
         })
         .on("mouseenter", function (event, d) {
-            d3.selectAll(".country").style("opacity", 0.4);
-            d3.select(this).style("opacity", 1);
             const alpha3 = getResolvedAlpha3(d);
+            highlightCountry(this, alpha3);
             showTooltip(event, getResolvedName(d), getCount(d), alpha3 ? _avgRatings[alpha3] : undefined);
         })
         .on("mousemove", function (event) {
             positionTooltip(event);
         })
         .on("mouseleave", function () {
-            d3.selectAll(".country").style("opacity", null);
+            clearHighlight();
             hideTooltip();
         })
         .on("click", function (event, d) {
@@ -310,15 +333,15 @@ async function renderMap(countryData) {
         .attr("stroke-width", 0.5)
         .style("cursor", "pointer")
         .on("mouseenter", function (event, d) {
-            d3.selectAll(".country").style("opacity", 0.4);
             const alpha3 = getResolvedAlpha3(d);
+            highlightCountry(this, alpha3);
             showTooltip(event, getResolvedName(d), getCount(d), alpha3 ? _avgRatings[alpha3] : undefined);
         })
         .on("mousemove", function (event) {
             positionTooltip(event);
         })
         .on("mouseleave", function () {
-            d3.selectAll(".country").style("opacity", null);
+            clearHighlight();
             hideTooltip();
         })
         .on("click", function (event, d) {
