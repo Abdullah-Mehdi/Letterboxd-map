@@ -249,22 +249,32 @@ async function renderMap(countryData) {
     // territories highlighted alongside their parent (e.g. hovering
     // France lights up French Guiana, Martinique, etc.).
     function highlightCountry(hoveredNode, activeAlpha3) {
-        const sameCountry = (d, node) => {
+        function isActive(node, d) {
             if (node === hoveredNode) return true;
             if (!activeAlpha3) return false;
             return getResolvedAlpha3(d) === activeAlpha3;
-        };
-        d3.selectAll(".country").style("opacity", function (d) {
-            return sameCountry(d, this) ? 1 : 0.4;
+        }
+        d3.selectAll(".country").each(function (d) {
+            const active = isActive(this, d);
+            this.style.opacity = active ? "1" : "0.25";
+            this.classList.toggle("highlighted", active);
         });
-        d3.selectAll(".small-marker").style("opacity", function (d) {
-            return sameCountry(d, this) ? 1 : 0.4;
+        d3.selectAll(".small-marker").each(function (d) {
+            const active = isActive(this, d);
+            this.style.opacity = active ? "1" : "0.25";
+            this.classList.toggle("highlighted", active);
         });
     }
 
     function clearHighlight() {
-        d3.selectAll(".country").style("opacity", null);
-        d3.selectAll(".small-marker").style("opacity", null);
+        d3.selectAll(".country").each(function () {
+            this.style.opacity = "";
+            this.classList.remove("highlighted");
+        });
+        d3.selectAll(".small-marker").each(function () {
+            this.style.opacity = "";
+            this.classList.remove("highlighted");
+        });
     }
 
     // Draw countries inside zoomable group

@@ -231,7 +231,8 @@ button[type="submit"]:disabled {
     fill: #2a2f35;
 }
 
-.country:hover {
+.country:hover,
+.country.highlighted {
     stroke: #fff;
     stroke-width: 1.2;
 }
@@ -240,7 +241,8 @@ button[type="submit"]:disabled {
     transition: r 0.15s, stroke-width 0.15s, opacity 0.15s;
 }
 
-.small-marker:hover {
+.small-marker:hover,
+.small-marker.highlighted {
     r: 5;
     stroke-width: 1;
 }
