@@ -239,8 +239,18 @@ async function renderMap(countryData) {
         .attr("viewBox", `0 0 ${width} ${height}`)
         .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // Zoomable group
-    const g = svg.append("g");
+    // Sphere clip: prevents any polygon (especially 10m features that wrap
+    // around the antimeridian like Russia/Aleutians/Fiji/Kiribati/NZ) from
+    // bleeding outside the projected globe oval. The clip is applied to a
+    // static parent of the zoomable group so it doesn't scale with zoom.
+    svg.append("defs").append("clipPath")
+        .attr("id", "sphere-clip")
+        .append("path")
+        .datum({type: "Sphere"})
+        .attr("d", d3.geoPath().projection(projection));
+
+    const clipped = svg.append("g").attr("clip-path", "url(#sphere-clip)");
+    const g = clipped.append("g");
 
     const zoom = d3.zoom()
         .scaleExtent([1, 8])
@@ -260,9 +270,12 @@ async function renderMap(countryData) {
         !SKIP_FEATURE_NAMES.has(f.properties.name)
     );
 
-    // Log scale with blue-to-purple palette
+    // Log scale with blue-to-purple palette. We compress the BuPu range to
+    // [0.25, 1.0] so even count=1 maps to a visibly tinted lavender rather
+    // than the near-white BuPu(0) ≈ #f7fcfd, which is indistinguishable
+    // from the page background once the user zooms out.
     const maxCount = Math.max(1, ...Object.values(countryData));
-    const colorScale = d3.scaleSequentialLog(d3.interpolateBuPu)
+    const colorScale = d3.scaleSequentialLog(t => d3.interpolateBuPu(0.25 + t * 0.75))
         .domain([1, Math.max(2, maxCount)]);
 
     // Lookup helpers. Territories are folded into their parent sovereign

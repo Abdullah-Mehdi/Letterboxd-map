@@ -153,6 +153,8 @@ TERRITORY_TO_PARENT = {
     "FRO": "DNK",  # Faroe Islands
     # Finland
     "ALA": "FIN",  # Åland Islands
+    # Morocco (de facto control)
+    "ESH": "MAR",  # Western Sahara
 }
 
 
