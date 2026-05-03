@@ -234,6 +234,7 @@ TITLE_COUNTRY_OVERRIDE = {
     ("Please Hold the Line", 2022): "MYS",
     ("Tricycle Thief", 2014): "MAC",
     (".TV", 2017): "TUV",
+    ("Semele", 2015): "CYP"
 }
 
 
